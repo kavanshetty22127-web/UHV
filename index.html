@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QUIZ</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Login Page -->
+    <div id="loginPage" class="page active">
+        <div class="login-container">
+            <h1 class="game-title">QUIZ</h1>
+            <div class="login-box">
+                <h2>Enter Your Name</h2>
+                <input type="text" id="usernameInput" placeholder="Username" autocomplete="off">
+                <button id="loginBtn" class="game-btn">START GAME</button>
+                <p id="loginError" class="error-message"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Waiting Page -->
+    <div id="waitingPage" class="page">
+        <div class="waiting-container">
+            <h1 class="game-title">QUIZ</h1>
+            <div class="waiting-box">
+                <h2>Welcome <span id="waitingUserName"></span>!</h2>
+                <div class="waiting-message">
+                    <p>Please wait while the admin starts the quiz session...</p>
+                    <div class="loading-spinner"></div>
+                    <p class="session-status">Session Status: <span id="waitingSessionStatus">Not Started</span></p>
+                </div>
+                <button id="waitingLogoutBtn" class="game-btn">LOGOUT</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quiz Page -->
+    <div id="quizPage" class="page">
+        <div class="quiz-header">
+            <div class="player-info">
+                <span id="playerName">Player: </span>
+                <span id="questionCounter">Question: 0/15</span>
+            </div>
+            <div class="score-display">
+                <span>Current Score: Hidden</span>
+            </div>
+        </div>
+        
+        <div class="quiz-content">
+            <div class="question-container">
+                <h2 id="questionText"></h2>
+            </div>
+            
+            <div class="options-container" id="optionsContainer">
+                <!-- Options will be dynamically added here -->
+            </div>
+            
+            <button id="nextBtn" class="game-btn hidden">NEXT QUESTION</button>
+            <button id="finishBtn" class="game-btn hidden">FINISH QUIZ</button>
+        </div>
+    </div>
+
+    <!-- Results Page -->
+    <div id="resultsPage" class="page">
+        <div class="results-container">
+            <h1 class="game-title">QUIZ RESULTS</h1>
+            <div class="result-content">
+                <h2>Congratulations <span id="resultPlayerName"></span>!</h2>
+                <div class="final-score">
+                    <p>Your Score: <span id="finalScore">0</span>/15</p>
+                    <p>Percentage: <span id="percentage">0</span>%</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Panel -->
+    <div id="adminPage" class="page">
+        <div class="admin-container">
+            <h1 class="game-title">QUIZ - ADMIN PANEL</h1>
+            <div class="admin-content">
+                <div class="admin-section">
+                    <h2>Session Control</h2>
+                    <div class="session-controls">
+                        <button id="startSessionBtn" class="game-btn session-btn">START SESSION</button>
+                        <button id="endSessionBtn" class="game-btn session-btn hidden">END SESSION</button>
+                        <p id="sessionStatus" class="session-status">Session: <span id="sessionStatusText">Not Started</span></p>
+                    </div>
+                </div>
+                
+                <div class="admin-section">
+                    <h2>Registered Users (Currently Online)</h2>
+                    <button id="refreshUsersBtn" class="game-btn refresh-btn">REFRESH LIST</button>
+                    <ul id="usersList" class="users-list">
+                        <!-- Users will be dynamically added here -->
+                    </ul>
+                </div>
+                
+                <div class="admin-section">
+                    <h2>Leaderboard (Completed Quizzes)</h2>
+                    <button id="refreshLeaderboardBtn" class="game-btn refresh-btn">REFRESH LEADERBOARD</button>
+                    <button id="openLeaderboardBtn" class="game-btn" style="margin-left: 10px;">OPEN LEADERBOARD IN NEW TAB</button>
+                    <ul id="leaderboardList" class="users-list">
+                        <!-- Leaderboard will be dynamically added here -->
+                    </ul>
+                </div>
+                
+                <div class="admin-section">
+                    <h2>Quiz Settings</h2>
+                    <div class="settings-form">
+                        <div class="setting-item">
+                            <label for="timerSetting">Timer per Question (seconds):</label>
+                            <input type="number" id="timerSetting" class="admin-input" min="5" max="300" value="30">
+                            <button id="saveTimerBtn" class="game-btn">SAVE TIMER</button>
+                        </div>
+                        <p id="timerSettingMessage" class="success-message"></p>
+                    </div>
+                </div>
+                
+                <div class="admin-section">
+                    <h2>Manage Questions</h2>
+                    <div class="question-form">
+                        <input type="text" id="questionInput" placeholder="Enter question" class="admin-input">
+                        <div class="options-inputs">
+                            <input type="text" id="option1" placeholder="Option 1" class="admin-input">
+                            <input type="text" id="option2" placeholder="Option 2" class="admin-input">
+                            <input type="text" id="option3" placeholder="Option 3" class="admin-input">
+                            <input type="text" id="option4" placeholder="Option 4" class="admin-input">
+                        </div>
+                        <select id="correctAnswer" class="admin-input">
+                            <option value="">Select correct answer</option>
+                            <option value="0">Option 1</option>
+                            <option value="1">Option 2</option>
+                            <option value="2">Option 3</option>
+                            <option value="3">Option 4</option>
+                        </select>
+                        <button id="addQuestionBtn" class="game-btn">ADD QUESTION</button>
+                        <p id="questionError" class="error-message"></p>
+                    </div>
+                    
+                    <div class="format-section">
+                        <h3>Question Format (Copy & Paste)</h3>
+                        <p>Use this format to add multiple questions at once:</p>
+                        <textarea id="questionFormat" class="format-textarea" readonly>{
+  "question": "Your question here",
+  "options": [
+    "Option 1",
+    "Option 2", 
+    "Option 3",
+    "Option 4"
+  ],
+  "answer": 0  // Index of correct answer (0-3)
+}</textarea>
+                        <button id="copyFormatBtn" class="game-btn">COPY FORMAT</button>
+                        <button id="bulkAddBtn" class="game-btn">BULK ADD QUESTIONS</button>
+                        <textarea id="bulkQuestions" class="format-textarea" placeholder="Paste questions in the format above (one JSON object per line or as an array)"></textarea>
+                        <p id="bulkError" class="error-message"></p>
+                    </div>
+                    
+                    <div class="questions-list-container">
+                        <h3>Existing Questions (<span id="questionsCount">0</span>)</h3>
+                        <ul id="questionsList" class="users-list">
+                            <!-- Questions will be dynamically added here -->
+                        </ul>
+                    </div>
+                </div>
+                
+                <button id="adminLogoutBtn" class="game-btn">LOGOUT</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
