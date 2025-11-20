@@ -1,0 +1,21 @@
+{
+  "name": "quiz-application",
+  "version": "1.0.0",
+  "description": "A quiz application with proper database storage",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "keywords": [
+    "quiz",
+    "game",
+    "education"
+  ],
+  "author": "Quiz Developer",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "nodemon": "^2.0.20"
+  }
+}
