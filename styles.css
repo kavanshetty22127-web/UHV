@@ -806,6 +806,20 @@ body::before {
     .format-textarea {
         min-height: 120px;
     }
+    
+    .registered-users-section {
+        padding: 15px;
+        margin: 15px auto;
+    }
+    
+    .registered-users-section h3 {
+        font-size: 1.2rem;
+    }
+    
+    .user-badge {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+    }
 }
 
 /* Mobile-specific optimizations */
@@ -904,6 +918,20 @@ body::before {
     .format-section h3 {
         font-size: 1.1rem;
     }
+    
+    .registered-users-section {
+        padding: 10px;
+        margin: 10px auto;
+    }
+    
+    .registered-users-section h3 {
+        font-size: 1.1rem;
+    }
+    
+    .user-badge {
+        padding: 5px 10px;
+        font-size: 0.7rem;
+    }
 }
 
 /* Large screen optimizations */
@@ -989,4 +1017,41 @@ body::before {
     .option::before, .game-btn::before {
         display: none;
     }
+}
+
+/* Registered Users Display */
+.registered-users-section {
+    background: linear-gradient(135deg, rgba(15, 20, 35, 0.95), rgba(26, 31, 58, 0.95));
+    border-radius: 12px;
+    padding: 20px;
+    margin: 20px auto;
+    max-width: 800px;
+    border: 2px solid rgba(0, 212, 255, 0.2);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+}
+
+.registered-users-section h3 {
+    color: #00d4ff;
+    text-align: center;
+    margin-bottom: 15px;
+    font-size: 1.4rem;
+    font-weight: 700;
+}
+
+.users-list-horizontal {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+}
+
+.user-badge {
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 153, 255, 0.2));
+    border: 2px solid rgba(0, 212, 255, 0.5);
+    border-radius: 20px;
+    padding: 8px 15px;
+    color: #00d4ff;
+    font-weight: 600;
+    font-size: 0.9rem;
+    box-shadow: 0 4px 10px rgba(0, 153, 255, 0.3);
 }

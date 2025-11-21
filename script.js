@@ -126,14 +126,12 @@ let timeLeft = timerValue;
 
 // Function to update admin panel in real-time
 function notifyAdminPanelUpdate() {
-    // Trigger storage event to update admin panel on other windows/tabs
+    // Force update the admin panel if it exists
+    updateAdminUsersList();
+    
+    // Also trigger storage event for other tabs
     const timestamp = Date.now().toString();
     localStorage.setItem('adminUpdateTrigger', timestamp);
-    
-    // Also update the current admin panel if it's active
-    if (adminPage && adminPage.classList.contains('active')) {
-        updateAdminUsersList();
-    }
 }
 
 // Initialize the app
@@ -156,19 +154,11 @@ document.addEventListener('DOMContentLoaded', () => {
     saveTimerBtn.addEventListener('click', saveTimerSetting);
     
     // Add event listeners for new admin features
-    refreshUsersBtn.addEventListener('click', () => {
-        if (adminPage && adminPage.classList.contains('active')) {
-            updateAdminUsersList();
-        }
-    });
+    refreshUsersBtn.addEventListener('click', updateAdminUsersList);
     
     // Add new event listeners
-    refreshLeaderboardBtn.addEventListener('click', () => {
-        if (adminPage && adminPage.classList.contains('active')) {
-            updateAdminUsersList(); // This function updates both users and leaderboard
-        }
-    });
-    
+    refreshLeaderboardBtn.addEventListener('click', updateAdminUsersList);
+
     openLeaderboardBtn.addEventListener('click', openLeaderboardInNewTab);
     
     clearLeaderboardBtn.addEventListener('click', clearLeaderboard);
@@ -179,10 +169,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Listen for storage changes to update admin panel in real-time
     window.addEventListener('storage', (e) => {
         if (e.key === 'adminUpdateTrigger' || e.key === 'quizUsers' || e.key === 'userScores') {
-            // Update admin panel if it's currently active
-            if (adminPage && adminPage.classList.contains('active')) {
-                updateAdminUsersList();
-            }
+            // Update admin panel
+            updateAdminUsersList();
         }
     });
 });
@@ -208,10 +196,8 @@ loginBtn.addEventListener('click', () => {
     if (!users.includes(username)) {
         users.push(username);
         localStorage.setItem('quizUsers', JSON.stringify(users));
-        // Add a small delay to ensure localStorage update propagates
-        setTimeout(() => {
-            notifyAdminPanelUpdate();
-        }, 100);
+        // Update admin panel immediately
+        updateAdminUsersList();
     }
     
     // Set current user and start quiz directly

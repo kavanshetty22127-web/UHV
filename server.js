@@ -5,6 +5,7 @@ const url = require('url');
 
 // Database file paths
 const USERS_FILE = './data/users.json';
+const ALL_USERS_FILE = './data/all_users.json';
 const SCORES_FILE = './data/scores.json';
 const QUESTIONS_FILE = './data/questions.json';
 
@@ -16,6 +17,10 @@ if (!fs.existsSync('./data')) {
 // Initialize data files if they don't exist
 if (!fs.existsSync(USERS_FILE)) {
     fs.writeFileSync(USERS_FILE, JSON.stringify([]));
+}
+
+if (!fs.existsSync(ALL_USERS_FILE)) {
+    fs.writeFileSync(ALL_USERS_FILE, JSON.stringify([]));
 }
 
 if (!fs.existsSync(SCORES_FILE)) {
@@ -133,9 +138,10 @@ function handleApiRequest(req, res, pathname, parsedUrl) {
     switch (pathname) {
         case '/api/users':
             if (req.method === 'GET') {
-                const users = readData(USERS_FILE);
+                // Return all registered users
+                const allUsers = readData(ALL_USERS_FILE);
                 res.writeHead(200);
-                res.end(JSON.stringify(users));
+                res.end(JSON.stringify(allUsers));
             } else if (req.method === 'POST') {
                 let body = '';
                 req.on('data', chunk => {
@@ -143,9 +149,26 @@ function handleApiRequest(req, res, pathname, parsedUrl) {
                 });
                 req.on('end', () => {
                     const newUser = JSON.parse(body);
-                    const users = readData(USERS_FILE);
-                    users.push(newUser);
-                    if (writeData(USERS_FILE, users)) {
+                    
+                    // Add to all users list
+                    const allUsers = readData(ALL_USERS_FILE);
+                    // Check if user already exists
+                    const existingUser = allUsers.find(user => user.username === newUser.username);
+                    if (!existingUser) {
+                        allUsers.push({
+                            username: newUser.username,
+                            registeredAt: newUser.timestamp
+                        });
+                        writeData(ALL_USERS_FILE, allUsers);
+                    }
+                    
+                    // Also add to online users
+                    const onlineUsers = readData(USERS_FILE);
+                    onlineUsers.push({
+                        username: newUser.username,
+                        loggedInAt: newUser.timestamp
+                    });
+                    if (writeData(USERS_FILE, onlineUsers)) {
                         res.writeHead(201);
                         res.end(JSON.stringify({ success: true }));
                     } else {
