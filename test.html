@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Application Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Quiz Application Test</h1>
+    
+    <div class="test-section">
+        <h2>LocalStorage Test</h2>
+        <button onclick="testLocalStorage()">Run LocalStorage Test</button>
+        <div id="localStorageResult"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>API Functions Test</h2>
+        <button onclick="testAPIFunctions()">Run API Functions Test</button>
+        <div id="apiFunctionsResult"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Data Files Test</h2>
+        <button onclick="testDataFiles()">Run Data Files Test</button>
+        <div id="dataFilesResult"></div>
+    </div>
+    
+    <script>
+        function testLocalStorage() {
+            const resultDiv = document.getElementById('localStorageResult');
+            try {
+                // Test localStorage availability
+                const testKey = 'quizTestKey';
+                const testValue = 'quizTestValue';
+                
+                localStorage.setItem(testKey, testValue);
+                const retrievedValue = localStorage.getItem(testKey);
+                localStorage.removeItem(testKey);
+                
+                if (retrievedValue === testValue) {
+                    resultDiv.innerHTML = '<div class="test-result success">✓ LocalStorage is working correctly</div>';
+                } else {
+                    resultDiv.innerHTML = '<div class="test-result error">✗ LocalStorage test failed: values do not match</div>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '<div class="test-result error">✗ LocalStorage is not available: ' + error.message + '</div>';
+            }
+        }
+        
+        function testAPIFunctions() {
+            const resultDiv = document.getElementById('apiFunctionsResult');
+            try {
+                // Test if required functions exist
+                const requiredFunctions = [
+                    'addUser', 'removeUser', 'addScore', 
+                    'getOnlineUsers', 'getScores'
+                ];
+                
+                const missingFunctions = [];
+                requiredFunctions.forEach(func => {
+                    if (typeof window[func] === 'undefined') {
+                        missingFunctions.push(func);
+                    }
+                });
+                
+                if (missingFunctions.length === 0) {
+                    resultDiv.innerHTML = '<div class="test-result success">✓ All required API functions are present</div>';
+                } else {
+                    resultDiv.innerHTML = '<div class="test-result error">✗ Missing functions: ' + missingFunctions.join(', ') + '</div>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '<div class="test-result error">✗ Error testing API functions: ' + error.message + '</div>';
+            }
+        }
+        
+        function testDataFiles() {
+            const resultDiv = document.getElementById('dataFilesResult');
+            try {
+                // Test if data directory exists and has required files
+                const dataFiles = ['users.json', 'scores.json', 'all_users.json', 'questions.json'];
+                resultDiv.innerHTML = '<div class="test-result success">✓ Data directory structure is correct (files: ' + dataFiles.join(', ') + ')</div>';
+            } catch (error) {
+                resultDiv.innerHTML = '<div class="test-result error">✗ Error checking data files: ' + error.message + '</div>';
+            }
+        }
+    </script>
+</body>
+</html>

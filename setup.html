@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Application - Setup</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #007bff;
+            text-align: center;
+        }
+        .option {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .option h2 {
+            color: #007bff;
+            margin-top: 0;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 10px 5px;
+            cursor: pointer;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+        .btn-secondary:hover {
+            background-color: #545b62;
+        }
+        code {
+            background-color: #e9ecef;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Quiz Application Setup</h1>
+        
+        <div class="option">
+            <h2>Option 1: Quick Start (No Installation Required)</h2>
+            <p>Open the quiz directly in your browser:</p>
+            <a href="index.html" class="btn" onclick="markSetupComplete()">Start Quiz Directly</a>
+            <p><strong>Note:</strong> This option uses your browser's localStorage for data storage. Data will only be available on this device.</p>
+        </div>
+        
+        <div class="option">
+            <h2>Option 2: With Node.js Server (Cross-Device Support)</h2>
+            <p>For full functionality including cross-device support:</p>
+            <ol>
+                <li>Install Node.js from <a href="https://nodejs.org/" target="_blank">https://nodejs.org/</a></li>
+                <li>Double-click on <code>start_server.bat</code> to start the server</li>
+                <li>Open your browser and go to <code>http://localhost:3000</code></li>
+            </ol>
+            <p><strong>Benefits:</strong> Share the application with other devices on the same network.</p>
+        </div>
+        
+        <div class="option">
+            <h2>Option 3: With Python Server</h2>
+            <p>If you have Python installed:</p>
+            <ol>
+                <li>Double-click on <code>start_quiz.bat</code> to start the server</li>
+                <li>Open your browser and go to <code>http://localhost:8000</code></li>
+            </ol>
+        </div>
+        
+        <div class="option">
+            <h2>Admin Access</h2>
+            <p>To access the admin panel:</p>
+            <ol>
+                <li>Open the quiz application</li>
+                <li>Enter username: <code>ADMIN2007</code></li>
+                <li>This will take you directly to the admin panel</li>
+            </ol>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="index.html" class="btn" onclick="markSetupComplete()">Start Quiz Now</a>
+        </div>
+    </div>
+    
+    <script>
+        function markSetupComplete() {
+            localStorage.setItem('quizSetupCompleted', 'true');
+        }
+    </script>
+</body>
+</html>

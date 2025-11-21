@@ -115,20 +115,195 @@ let currentUser = null;
 let currentQuestionIndex = 0;
 let score = 0;
 let selectedQuestions = [];
-// Use localStorage for cross-device user tracking
-let users = JSON.parse(localStorage.getItem('activeUsers')) || []; // Users currently taking quiz
-let userScores = JSON.parse(localStorage.getItem('userScores')) || {}; // Users who finished with their scores
-let timerValue = parseInt(localStorage.getItem('quizTimer')) || 30;
+// Use localStorage for user tracking when backend is not available
+let users = []; // Users currently taking quiz
+let userScores = []; // Users who finished with their scores
+let timerValue = 30;
 let timerInterval = null;
-let timeLeft = timerValue;
+let timeLeft = 30;
+
+// API Helper Functions
+function apiRequest(endpoint, method = 'GET', data = null) {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open(method, API_BASE + endpoint, true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        resolve(response);
+                    } catch (e) {
+                        reject(e);
+                    }
+                } else {
+                    reject(new Error('API request failed with status ' + xhr.status));
+                }
+            }
+        };
+        
+        if (data) {
+            xhr.send(JSON.stringify(data));
+        } else {
+            xhr.send();
+        }
+    });
+}
+
+// Function to add user to backend or localStorage
+function addUser(username) {
+    // Try to use backend API first
+    return apiRequest('/users', 'POST', {
+        username: username,
+        timestamp: Date.now()
+    })
+    .then(response => {
+        if (response.success) {
+            return { success: true, source: 'backend' };
+        } else {
+            throw new Error('Backend registration failed');
+        }
+    })
+    .catch(error => {
+        // Fallback to localStorage
+        console.warn('Backend not available, using localStorage:', error.message);
+        try {
+            let allUsers = JSON.parse(localStorage.getItem('allUsers') || '[]');
+            const existingUser = allUsers.find(user => user.username === username);
+            if (!existingUser) {
+                allUsers.push({
+                    username: username,
+                    registeredAt: Date.now()
+                });
+                localStorage.setItem('allUsers', JSON.stringify(allUsers));
+            }
+            
+            let onlineUsers = JSON.parse(localStorage.getItem('onlineUsers') || '[]');
+            onlineUsers.push({
+                username: username,
+                loggedInAt: Date.now()
+            });
+            localStorage.setItem('onlineUsers', JSON.stringify(onlineUsers));
+            
+            return { success: true, source: 'localStorage' };
+        } catch (e) {
+            return { success: false, error: e.message };
+        }
+    });
+}
+
+// Function to remove user from backend or localStorage
+function removeUser(username) {
+    // Try to use backend API first
+    return apiRequest('/users/online', 'DELETE', {
+        username: username
+    })
+    .then(response => {
+        if (response.success) {
+            return { success: true, source: 'backend' };
+        } else {
+            throw new Error('Backend removal failed');
+        }
+    })
+    .catch(error => {
+        // Fallback to localStorage
+        console.warn('Backend not available, using localStorage:', error.message);
+        try {
+            let onlineUsers = JSON.parse(localStorage.getItem('onlineUsers') || '[]');
+            onlineUsers = onlineUsers.filter(user => user.username !== username);
+            localStorage.setItem('onlineUsers', JSON.stringify(onlineUsers));
+            return { success: true, source: 'localStorage' };
+        } catch (e) {
+            return { success: false, error: e.message };
+        }
+    });
+}
+
+// Function to add score to backend or localStorage
+function addScore(username, score, total) {
+    const scoreData = {
+        username: username,
+        score: score,
+        total: total,
+        percentage: Math.round((score / total) * 100),
+        timestamp: Date.now(),
+        date: new Date().toLocaleString()
+    };
+    
+    // Try to use backend API first
+    return apiRequest('/scores', 'POST', scoreData)
+    .then(response => {
+        if (response.success) {
+            return { success: true, source: 'backend' };
+        } else {
+            throw new Error('Backend score submission failed');
+        }
+    })
+    .catch(error => {
+        // Fallback to localStorage
+        console.warn('Backend not available, using localStorage:', error.message);
+        try {
+            let scores = JSON.parse(localStorage.getItem('scores') || '[]');
+            scores.push(scoreData);
+            localStorage.setItem('scores', JSON.stringify(scores));
+            return { success: true, source: 'localStorage' };
+        } catch (e) {
+            return { success: false, error: e.message };
+        }
+    });
+}
+
+// Function to get online users from backend or localStorage
+function getOnlineUsers() {
+    // Try to use backend API first
+    return apiRequest('/users/online', 'GET')
+    .then(users => {
+        return { users: users, source: 'backend' };
+    })
+    .catch(error => {
+        // Fallback to localStorage
+        console.warn('Backend not available, using localStorage:', error.message);
+        try {
+            const users = JSON.parse(localStorage.getItem('onlineUsers') || '[]');
+            return { users: users, source: 'localStorage' };
+        } catch (e) {
+            return { users: [], source: 'localStorage' };
+        }
+    });
+}
+
+// Function to get scores from backend or localStorage
+function getScores() {
+    // Try to use backend API first
+    return apiRequest('/scores', 'GET')
+    .then(scores => {
+        return { scores: scores, source: 'backend' };
+    })
+    .catch(error => {
+        // Fallback to localStorage
+        console.warn('Backend not available, using localStorage:', error.message);
+        try {
+            const scores = JSON.parse(localStorage.getItem('scores') || '[]');
+            // Sort by score (descending) then by timestamp (ascending)
+            scores.sort((a, b) => {
+                if (b.score !== a.score) {
+                    return b.score - a.score;
+                }
+                return a.timestamp - b.timestamp;
+            });
+            return { scores: scores, source: 'localStorage' };
+        } catch (e) {
+            return { scores: [], source: 'localStorage' };
+        }
+    });
+}
 
 // Function to update admin panel in real-time
 function notifyAdminPanelUpdate() {
     // Update admin panel immediately
     updateAdminUsersList();
-    
-    // Force storage event by updating a dummy value
-    localStorage.setItem('adminPanelUpdate', Date.now().toString());
 }
 
 // Initialize the app
@@ -163,13 +338,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Update session status on load
     updateSessionStatus();
     
-    // Listen for storage changes to update admin panel in real-time
-    window.addEventListener('storage', (e) => {
-        if (e.key === 'activeUsers' || e.key === 'userScores' || e.key === 'adminPanelUpdate') {
-            // Update admin panel
+    // Poll for updates every 2 seconds when admin panel is active
+    setInterval(() => {
+        if (adminPage.classList.contains('active')) {
             updateAdminUsersList();
         }
-    });
+    }, 2000);
 });
 
 // Login functionality
@@ -188,19 +362,18 @@ loginBtn.addEventListener('click', () => {
         return;
     }
     
-    // Add user to currently active users list
-    if (!users.includes(username)) {
-        users.push(username);
-        // Save to localStorage for cross-device access
-        localStorage.setItem('activeUsers', JSON.stringify(users));
-        // Notify admin panel of update
-        notifyAdminPanelUpdate();
-    }
-    
-    // Set current user and start quiz directly
-    currentUser = username;
-    sessionStorage.setItem('loggedInUser', username);
-    startQuiz(username);
+    // Add user
+    addUser(username)
+        .then(response => {
+            if (response.success) {
+                // Set current user and start quiz directly
+                currentUser = username;
+                sessionStorage.setItem('loggedInUser', username);
+                startQuiz(username);
+            } else {
+                loginError.textContent = 'Failed to register user';
+            }
+        });
 });
 
 // Start the quiz
@@ -450,360 +623,194 @@ finishBtn.addEventListener('click', () => {
         clearInterval(timerInterval);
     }
     
-    // Move user from active users to finished users
+    // Save score
     if (currentUser) {
-        // Remove from active users
-        users = users.filter(user => user !== currentUser);
-        // Save updated active users to localStorage
-        localStorage.setItem('activeUsers', JSON.stringify(users));
-        
-        // Add to finished users with score
-        userScores[currentUser] = {
-            score: score,
-            total: selectedQuestions.length,
-            percentage: Math.round((score / selectedQuestions.length) * 100),
-            date: new Date().toLocaleString()
-        };
-        
-        // Save updated user scores to localStorage
-        localStorage.setItem('userScores', JSON.stringify(userScores));
-        
-        // Notify admin panel of update
-        notifyAdminPanelUpdate();
+        addScore(currentUser, score, selectedQuestions.length)
+            .then(response => {
+                if (response.success) {
+                    // Notify admin panel of update
+                    notifyAdminPanelUpdate();
+                }
+            });
     }
     
+    // Remove user from online users
+    if (currentUser) {
+        removeUser(currentUser);
+    }
+    
+    // Show results
     showResults();
 });
 
-// Show results
+// Function to show results
 function showResults() {
-    // Calculate percentage
-    const percent = Math.round((score / selectedQuestions.length) * 100);
-    
-    // Update result page
+    // Update UI with final score
     resultPlayerName.textContent = currentUser;
-    finalScore.textContent = score;
-    percentage.textContent = percent;
+    finalScore.textContent = `${score}/${selectedQuestions.length}`;
+    percentage.textContent = `${Math.round((score / selectedQuestions.length) * 100)}%`;
     
     // Switch to results page
     quizPage.classList.remove('active');
     resultsPage.classList.add('active');
 }
 
-// Admin panel
-function showAdminPanel() {
-    updateAdminUsersList();
-    
-    // Set timer setting value
-    timerSetting.value = timerValue;
-    
-    // Update questions list
-    updateQuestionsList();
-    
-    // Switch to admin page
-    loginPage.classList.remove('active');
-    adminPage.classList.add('active');
-}
-
-// Update admin users list (separate function for real-time updates)
+// Function to update admin users list
 function updateAdminUsersList() {
-    // Reload data from localStorage for fresh data
-    users = JSON.parse(localStorage.getItem('activeUsers')) || [];
-    userScores = JSON.parse(localStorage.getItem('userScores')) || {};
-    
-    // Update currently online users list
-    usersList.innerHTML = '';
-    
-    if (users.length === 0) {
-        usersList.innerHTML = '<li style="text-align: center; color: #888;">No users online</li>';
-    } else {
-        users.forEach((user) => {
-            const listItem = document.createElement('li');
-            listItem.innerHTML = `
-                <strong>${user}</strong>
-                <span style="float: right; color: #ffd700;">⚡ Taking Quiz...</span>
-            `;
-            usersList.appendChild(listItem);
+    // Get online users
+    getOnlineUsers()
+        .then(result => {
+            const usersList = document.getElementById('usersList');
+            if (usersList) {
+                usersList.innerHTML = '';
+                if (result.users.length === 0) {
+                    usersList.innerHTML = '<li class="no-users">No users currently taking the quiz</li>';
+                } else {
+                    result.users.forEach(user => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `
+                            <span class="user-name">${user.username}</span>
+                            <span class="user-time">Logged in: ${new Date(user.loggedInAt || user.timestamp).toLocaleTimeString()}</span>
+                        `;
+                        usersList.appendChild(li);
+                    });
+                }
+            }
         });
-    }
-    
-    // Update leaderboard (users who finished)
-    leaderboardList.innerHTML = '';
-    
-    // Get all users with scores
-    const completedUsers = Object.keys(userScores).map(user => ({
-        name: user,
-        scoreData: userScores[user]
-    }));
-    
-    if (completedUsers.length === 0) {
-        leaderboardList.innerHTML = '<li style="text-align: center; color: #888;">No completed quizzes yet</li>';
-    } else {
-        completedUsers.forEach((userData, index) => {
-            const listItem = document.createElement('li');
-            const userScore = userData.scoreData;
-            const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
-            
-            listItem.innerHTML = `
-                <strong>${medal} ${userData.name}</strong>
-                <span style="float: right; color: #00fff7;">
-                    Score: ${userScore.score}/${userScore.total} (${userScore.percentage}%) - ${userScore.date}
-                </span>
-            `;
-            
-            leaderboardList.appendChild(listItem);
+
+    // Get scores
+    getScores()
+        .then(result => {
+            const leaderboardList = document.getElementById('leaderboardList');
+            if (leaderboardList) {
+                leaderboardList.innerHTML = '';
+                if (result.scores.length === 0) {
+                    leaderboardList.innerHTML = '<li class="no-users">No completed quizzes yet</li>';
+                } else {
+                    result.scores.forEach((scoreData, index) => {
+                        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
+                        const li = document.createElement('li');
+                        li.innerHTML = `
+                            <div class="leaderboard-item">
+                                <span class="medal">${medal}</span>
+                                <span class="user-name">${scoreData.username}</span>
+                                <span class="score">${scoreData.score}/${scoreData.total}</span>
+                                <span class="percentage">(${scoreData.percentage}%)</span>
+                                <span class="time">${scoreData.date}</span>
+                            </div>
+                        `;
+                        leaderboardList.appendChild(li);
+                    });
+                }
+            }
         });
-    }
-    
-    // Set timer setting value
-    timerSetting.value = timerValue;
-    
-    // Update questions list
-    updateQuestionsList();
 }
 
-// Save timer setting
-function saveTimerSetting() {
-    const newTimerValue = parseInt(timerSetting.value);
+// Function to show admin panel
+function showAdminPanel() {
+    // Hide other pages
+    loginPage.classList.remove('active');
+    quizPage.classList.remove('active');
+    resultsPage.classList.remove('active');
     
+    // Show admin panel
+    adminPage.classList.add('active');
+    
+    // Update the admin panel immediately
+    updateAdminUsersList();
+}
+
+// Function to open leaderboard in new tab
+function openLeaderboardInNewTab() {
+    window.open('leaderboard.html', '_blank');
+}
+
+// Function to clear leaderboard
+function clearLeaderboard() {
+    if (confirm('Are you sure you want to clear all scores? This cannot be undone.')) {
+        // For now, we'll just refresh the display
+        // In a full implementation, we would add an API endpoint to clear scores
+        updateAdminUsersList();
+    }
+}
+
+// Function to update session status
+function updateSessionStatus() {
+    // This function can be expanded to show session information
+}
+
+// Function to copy question format
+function copyQuestionFormat() {
+    const format = `{
+    "question": "Your question here",
+    "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
+    "answer": 0
+}`;
+    navigator.clipboard.writeText(format)
+        .then(() => {
+            const copyFormatBtn = document.getElementById('copyFormatBtn');
+            const originalText = copyFormatBtn.textContent;
+            copyFormatBtn.textContent = 'COPIED!';
+            setTimeout(() => {
+                copyFormatBtn.textContent = originalText;
+            }, 2000);
+        })
+        .catch(err => {
+            console.error('Failed to copy format: ', err);
+        });
+}
+
+// Function to bulk add questions
+function bulkAddQuestions() {
+    const bulkQuestions = document.getElementById('bulkQuestions');
+    const bulkError = document.getElementById('bulkError');
+    
+    try {
+        const questions = JSON.parse(bulkQuestions.value);
+        if (!Array.isArray(questions)) {
+            throw new Error('Input must be an array of questions');
+        }
+        
+        // Add questions to the quizQuestions array
+        quizQuestions.push(...questions);
+        
+        bulkError.textContent = `Successfully added ${questions.length} questions!`;
+        bulkError.style.color = '#4CAF50';
+        bulkQuestions.value = '';
+        
+        setTimeout(() => {
+            bulkError.textContent = '';
+        }, 3000);
+    } catch (error) {
+        bulkError.textContent = 'Invalid JSON format: ' + error.message;
+        bulkError.style.color = '#f44336';
+    }
+}
+
+// Function to save timer setting
+function saveTimerSetting() {
+    const timerSetting = document.getElementById('timerSetting');
+    const timerSettingMessage = document.getElementById('timerSettingMessage');
+    
+    const newTimerValue = parseInt(timerSetting.value);
     if (isNaN(newTimerValue) || newTimerValue < 5 || newTimerValue > 300) {
         timerSettingMessage.textContent = 'Please enter a valid time between 5 and 300 seconds';
-        timerSettingMessage.style.color = '#ff4500';
+        timerSettingMessage.style.color = '#f44336';
         return;
     }
     
     timerValue = newTimerValue;
-    localStorage.setItem('quizTimer', timerValue);
+    timerSettingMessage.textContent = `Timer set to ${timerValue} seconds`;
+    timerSettingMessage.style.color = '#4CAF50';
     
-    timerSettingMessage.textContent = `Timer setting saved: ${timerValue} seconds per question`;
-    timerSettingMessage.style.color = '#00ff00';
-    
-    // Clear message after 3 seconds
     setTimeout(() => {
         timerSettingMessage.textContent = '';
     }, 3000);
 }
 
-// Update questions list in admin panel
-function updateQuestionsList() {
-    questionsList.innerHTML = '';
-    questionsCount.textContent = quizQuestions.length;
-    
-    quizQuestions.forEach((question, index) => {
-        const questionItem = document.createElement('li');
-        questionItem.className = 'question-item';
-        
-        questionItem.innerHTML = `
-            <div class="question-text">${question.question}</div>
-            <ul class="question-options">
-                ${question.options.map((option, i) => 
-                    `<li${i === question.answer ? ' class="correct"' : ''}>${option}${i === question.answer ? ' (Correct)' : ''}</li>`
-                ).join('')}
-            </ul>
-        `;
-        
-        questionsList.appendChild(questionItem);
-    });
-}
-
-// Add question functionality
-addQuestionBtn.addEventListener('click', () => {
-    const question = questionInput.value.trim();
-    const opt1 = option1.value.trim();
-    const opt2 = option2.value.trim();
-    const opt3 = option3.value.trim();
-    const opt4 = option4.value.trim();
-    const correct = correctAnswer.value;
-    
-    // Validate inputs
-    if (!question || !opt1 || !opt2 || !opt3 || !opt4) {
-        questionError.textContent = 'Please fill in all fields';
-        return;
-    }
-    
-    if (correct === '') {
-        questionError.textContent = 'Please select the correct answer';
-        return;
-    }
-    
-    // Create new question object
-    const newQuestion = {
-        question: question,
-        options: [opt1, opt2, opt3, opt4],
-        answer: parseInt(correct)
-    };
-    
-    // Add to quiz questions
-    quizQuestions.push(newQuestion);
-    
-    // Clear form
-    questionInput.value = '';
-    option1.value = '';
-    option2.value = '';
-    option3.value = '';
-    option4.value = '';
-    correctAnswer.value = '';
-    questionError.textContent = '';
-    
-    // Update questions list
-    updateQuestionsList();
-});
-
-// Copy question format to clipboard
-function copyQuestionFormat() {
-    questionFormat.select();
-    document.execCommand('copy');
-    
-    // Show feedback
-    const originalText = copyFormatBtn.textContent;
-    copyFormatBtn.textContent = 'COPIED!';
-    setTimeout(() => {
-        copyFormatBtn.textContent = originalText;
-    }, 2000);
-}
-
-// Bulk add questions
-function bulkAddQuestions() {
-    const bulkText = bulkQuestions.value.trim();
-    
-    if (!bulkText) {
-        bulkError.textContent = 'Please paste questions in the format provided';
-        return;
-    }
-    
-    try {
-        // Try to parse as JSON array first
-        let questionsToAdd = [];
-        
-        // Check if it's a single JSON object or multiple objects
-        if (bulkText.trim().startsWith('[')) {
-            // It's an array
-            questionsToAdd = JSON.parse(bulkText);
-        } else if (bulkText.trim().startsWith('{')) {
-            // It's a single object or multiple objects separated by newlines
-            const lines = bulkText.split('\n').filter(line => line.trim() !== '');
-            if (lines.length === 1) {
-                // Single object
-                questionsToAdd = [JSON.parse(bulkText)];
-            } else {
-                // Multiple objects
-                questionsToAdd = lines.map(line => JSON.parse(line));
-            }
-        } else {
-            throw new Error('Invalid format');
-        }
-        
-        // Validate each question
-        for (const question of questionsToAdd) {
-            if (!question.question || !Array.isArray(question.options) || question.options.length !== 4 || 
-                typeof question.answer !== 'number' || question.answer < 0 || question.answer > 3) {
-                throw new Error('Invalid question format');
-            }
-        }
-        
-        // Add all questions
-        quizQuestions.push(...questionsToAdd);
-        
-        // Clear bulk input
-        bulkQuestions.value = '';
-        bulkError.textContent = '';
-        
-        // Update questions list
-        updateQuestionsList();
-        
-        // Show feedback
-        const originalText = bulkAddBtn.textContent;
-        bulkAddBtn.textContent = 'QUESTIONS ADDED!';
-        setTimeout(() => {
-            bulkAddBtn.textContent = originalText;
-        }, 2000);
-        
-    } catch (e) {
-        bulkError.textContent = 'Invalid format. Please check the format and try again.';
-        console.error(e);
-    }
-}
-
-// Admin logout
+// Add event listener for admin logout
 adminLogoutBtn.addEventListener('click', () => {
     sessionStorage.removeItem('loggedInUser');
-    currentUser = null;
-    
     adminPage.classList.remove('active');
     loginPage.classList.add('active');
-    usernameInput.value = '';
-    loginError.textContent = '';
 });
-
-// Function to open leaderboard in new tab
-function openLeaderboardInNewTab() {
-    // Open the leaderboard.html file in a new tab
-    window.open('leaderboard.html', '_blank');
-}
-
-// Clear leaderboard function
-function clearLeaderboard() {
-    if (confirm('Are you sure you want to clear the entire leaderboard? This will delete all quiz scores.')) {
-        localStorage.setItem('userScores', JSON.stringify({}));
-        userScores = {};
-        updateAdminUsersList();
-        notifyAdminPanelUpdate();
-    }
-}
-
-// Handle page refresh/logout
-window.addEventListener('beforeunload', () => {
-    // Remove user from registered list and force re-login on refresh
-    const loggedUser = sessionStorage.getItem('loggedInUser');
-    if (loggedUser && loggedUser !== 'ADMIN2007') {
-        // Remove from registered users
-        users = JSON.parse(localStorage.getItem('activeUsers')) || [];
-        users = users.filter(user => user !== loggedUser);
-        localStorage.setItem('activeUsers', JSON.stringify(users));
-        // Notify admin panel of update
-        notifyAdminPanelUpdate();
-    }
-    
-    // Clear timer if active
-    if (timerInterval) {
-        clearInterval(timerInterval);
-    }
-});
-
-// Add visibility change detection for better user tracking
-document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') {
-        // User switched tabs or minimized window
-        const loggedUser = sessionStorage.getItem('loggedInUser');
-        if (loggedUser && loggedUser !== 'ADMIN2007') {
-            // Notify admin panel that user might have left
-            notifyAdminPanelUpdate();
-        }
-    } else if (document.visibilityState === 'visible') {
-        // User returned to tab
-        const loggedUser = sessionStorage.getItem('loggedInUser');
-        if (loggedUser && loggedUser !== 'ADMIN2007') {
-            // Ensure user is still in the registered list
-            users = JSON.parse(localStorage.getItem('activeUsers')) || [];
-            if (!users.includes(loggedUser)) {
-                users.push(loggedUser);
-                localStorage.setItem('activeUsers', JSON.stringify(users));
-                notifyAdminPanelUpdate();
-            }
-        } else if (loggedUser === 'ADMIN2007') {
-            // Refresh admin panel when admin returns
-            if (adminPage.classList.contains('active')) {
-                updateAdminUsersList();
-            }
-        }
-    }
-});
-
-// Update session status - simplified since we removed session control
-function updateSessionStatus() {
-    // Session is always active now
-    if (sessionStatusText) {
-        sessionStatusText.textContent = 'Always Active';
-        sessionStatusText.style.color = '#00ff88';
-    }
-}

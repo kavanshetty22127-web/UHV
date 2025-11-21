@@ -238,14 +238,14 @@
     </div>
 
     <script>
-        // Function to get user scores from localStorage
-        function getUserScores() {
+        // Function to get scores from localStorage
+        function getScores() {
             try {
-                const userScores = localStorage.getItem('userScores');
-                return userScores ? JSON.parse(userScores) : {};
+                const scores = localStorage.getItem('scores');
+                return scores ? JSON.parse(scores) : [];
             } catch (error) {
-                console.error('Failed to parse user scores:', error);
-                return {};
+                console.error('Failed to parse scores:', error);
+                return [];
             }
         }
         
@@ -253,37 +253,35 @@
         function updateLeaderboard() {
             const leaderboardList = document.getElementById('leaderboardList');
             
-            // Get user scores from localStorage
-            const userScores = getUserScores();
-            
-            // Get all users with scores
-            const completedUsers = Object.keys(userScores).map(user => ({
-                name: user,
-                scoreData: userScores[user]
-            }));
-            
-            // Sort by completion time (earliest finishers first)
-            completedUsers.sort((a, b) => a.scoreData.timestamp - b.scoreData.timestamp);
+            // Get scores from localStorage
+            const scores = getScores();
             
             // Clear the list
             leaderboardList.innerHTML = '';
             
-            if (completedUsers.length === 0) {
+            if (scores.length === 0) {
                 leaderboardList.innerHTML = '<li class="no-data">No completed quizzes yet</li>';
             } else {
-                completedUsers.forEach((userData, index) => {
-                    const userScore = userData.scoreData;
+                // Sort by score (descending) then by timestamp (ascending)
+                scores.sort((a, b) => {
+                    if (b.score !== a.score) {
+                        return b.score - a.score;
+                    }
+                    return a.timestamp - b.timestamp;
+                });
+                
+                scores.forEach((scoreData, index) => {
                     const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
                     
                     const listItem = document.createElement('li');
                     listItem.innerHTML = `
                         <div class="player-info">
                             <span class="medal">${medal}</span>
-                            <span class="player-name">${userData.name}</span>
+                            <span class="player-name">${scoreData.username}</span>
                         </div>
                         <div class="score-details">
-                            Score: ${userScore.score}/${userScore.total}<br>
-                            Finished at: ${userScore.date}
+                            Score: ${scoreData.score}/${scoreData.total}<br>
+                            Finished at: ${scoreData.date}
                         </div>
                     `;
                     
