@@ -131,7 +131,7 @@ function notifyAdminPanelUpdate() {
     localStorage.setItem('adminUpdateTrigger', timestamp);
     
     // Also update the current admin panel if it's active
-    if (adminPage.classList.contains('active')) {
+    if (adminPage && adminPage.classList.contains('active')) {
         updateAdminUsersList();
     }
 }
@@ -157,14 +157,14 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Add event listeners for new admin features
     refreshUsersBtn.addEventListener('click', () => {
-        if (adminPage.classList.contains('active')) {
+        if (adminPage && adminPage.classList.contains('active')) {
             updateAdminUsersList();
         }
     });
     
     // Add new event listeners
     refreshLeaderboardBtn.addEventListener('click', () => {
-        if (adminPage.classList.contains('active')) {
+        if (adminPage && adminPage.classList.contains('active')) {
             updateAdminUsersList(); // This function updates both users and leaderboard
         }
     });
@@ -180,7 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('storage', (e) => {
         if (e.key === 'adminUpdateTrigger' || e.key === 'quizUsers' || e.key === 'userScores') {
             // Update admin panel if it's currently active
-            if (adminPage.classList.contains('active')) {
+            if (adminPage && adminPage.classList.contains('active')) {
                 updateAdminUsersList();
             }
         }
@@ -208,7 +208,10 @@ loginBtn.addEventListener('click', () => {
     if (!users.includes(username)) {
         users.push(username);
         localStorage.setItem('quizUsers', JSON.stringify(users));
-        notifyAdminPanelUpdate();
+        // Add a small delay to ensure localStorage update propagates
+        setTimeout(() => {
+            notifyAdminPanelUpdate();
+        }, 100);
     }
     
     // Set current user and start quiz directly
