@@ -115,11 +115,9 @@ let currentUser = null;
 let currentQuestionIndex = 0;
 let score = 0;
 let selectedQuestions = [];
-// Clear all registered users on initialization
-let users = [];
-localStorage.setItem('quizUsers', JSON.stringify(users));
-let userScores = {}; // Store user scores with timestamps
-localStorage.setItem('userScores', JSON.stringify(userScores));
+// Don't clear all registered users on initialization - keep existing data
+let users = JSON.parse(localStorage.getItem('quizUsers')) || [];
+let userScores = JSON.parse(localStorage.getItem('userScores')) || {}; // Store user scores with timestamps
 let timerValue = parseInt(localStorage.getItem('quizTimer')) || 30;
 let timerInterval = null;
 let timeLeft = timerValue;
